@@ -42,7 +42,7 @@ public class ProductXEstimateService {
 
     public ProductXEstimateDto createProductXEstimate(ProductXEstimateDto productXEstimateDto) {
         ProductXEstimate productXEstimate = convertToEntity(productXEstimateDto);
-        float price = priceService.findProductPrice();
+        float price = priceService.findProductPrice(productXEstimateDto.getProductId());
         if(price > -1){
             productXEstimate.setPrice(price);
         }else {

@@ -7,6 +7,7 @@ public class ProductDto {
     private String productCode;
     private long inventory;
     private long categoryId;
+    private float price;
 
     public ProductDto() {
     }
@@ -57,5 +58,13 @@ public class ProductDto {
 
     public void setCategoryId(long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public float getPrice() {
+        return price;
+    }
+
+    public void setPrice(float price) {
+        this.price = price;
     }
 }

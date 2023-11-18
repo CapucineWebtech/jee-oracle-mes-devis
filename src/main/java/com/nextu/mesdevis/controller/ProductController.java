@@ -1,6 +1,5 @@
 package com.nextu.mesdevis.controller;
 
-import com.nextu.mesdevis.dto.ClientDto;
 import com.nextu.mesdevis.dto.ProductDto;
 import com.nextu.mesdevis.service.MemberAuthenticationService;
 import com.nextu.mesdevis.service.ProductService;
@@ -23,8 +22,34 @@ public class ProductController {
     private MemberAuthenticationService memberAuthenticationService;
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<ProductDto> products = productService.getAllProducts();
+    public ResponseEntity<List<ProductDto>> getAllProducts(
+            @RequestParam(name = "start", defaultValue = "0") String startStr,
+            @RequestParam(name = "end", defaultValue = "0") String endStr,
+            @RequestParam(name = "name", required = false) String name,
+            @RequestParam(name = "code", required = false) String code,
+            @RequestParam(name = "category", required = false) String category) {
+        long start, end;
+        try {
+            start = Long.parseLong(startStr);
+            end = Long.parseLong(endStr);
+        } catch (NumberFormatException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        List<ProductDto> products;
+
+        if (name != null) {
+            products = productService.getProductsByNameContainingWithPrice(name);
+        } else if (code != null) {
+            products = productService.getProductsByCodeContainingWithPrice(code);
+        } else if (category != null) {
+            products = productService.getProductsByCategoryNameWithPrice(category);
+        } else if (start >= 0 && end >= 0) {
+            products = productService.getProductsWithPrice(start, end);
+        } else {
+            products = productService.getAllProducts();
+        }
+
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 

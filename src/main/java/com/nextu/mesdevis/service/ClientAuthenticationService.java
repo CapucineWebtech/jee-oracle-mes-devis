@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class ClientAuthenticationService {
-    private final Logger logger = LoggerFactory.getLogger(MemberService.class);
+    private final Logger logger = LoggerFactory.getLogger(ClientService.class);
 
     @Value("${apiLoginClient}")
     private String apiUrl;

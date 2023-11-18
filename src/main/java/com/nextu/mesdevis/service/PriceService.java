@@ -20,9 +20,9 @@ public class PriceService {
     @Value("${apiProductPrice}")
     private String apiUrl;
 
-    private final Logger logger = LoggerFactory.getLogger(MemberService.class);
+    private final Logger logger = LoggerFactory.getLogger(ProductService.class);
 
-    public float findProductPrice() {
+    public float findProductPrice(long productId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -31,7 +31,7 @@ public class PriceService {
         DecimalFormat df = new DecimalFormat("#.##");
         String formattedPrice = df.format(randomPrice);
 
-        String jsonBody = "{\"productPrice\":" + formattedPrice + "}";
+        String jsonBody = "{\"productPrice\":\"" + formattedPrice + "\"}";
 
         HttpEntity<String> httpEntity = new HttpEntity<>(jsonBody, headers);
         RestTemplate restTemplate = new RestTemplate();
@@ -43,7 +43,8 @@ public class PriceService {
         try {
             jsonNode = objectMapper.readTree(response.getBody());
             String productPrice = jsonNode.path("json").path("productPrice").asText();
-            return Float.parseFloat(productPrice);
+            String productPriceFormatted = productPrice.replace(",", ".");
+            return Float.parseFloat(productPriceFormatted);
         } catch (Exception e) {
             logger.error("An error occurred while parsing JSON", e);
         }
