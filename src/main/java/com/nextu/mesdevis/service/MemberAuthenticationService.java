@@ -45,7 +45,7 @@ public class MemberAuthenticationService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String jsonBody = "{\"IdMember\":2}";
+        String jsonBody = "{\"IdMember\":\"1\"}";
 
         HttpEntity<String> httpEntity = new HttpEntity<>(jsonBody, headers);
         RestTemplate restTemplate = new RestTemplate();
@@ -56,7 +56,7 @@ public class MemberAuthenticationService {
         JsonNode jsonNode;
         try {
             jsonNode = objectMapper.readTree(response.getBody());
-            String idMember = jsonNode.path("json").path("roleMember").asText();
+            String idMember = jsonNode.path("json").path("IdMember").asText();
             return Long.parseLong(idMember);
         } catch (Exception e) {
             logger.error("An error occurred while parsing JSON", e);

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Service
 public class EstimateService {
     @Autowired
@@ -42,9 +44,19 @@ public class EstimateService {
     @Autowired
     private MemberAuthenticationService memberAuthenticationService;
 
-    public List<EstimateDto> getAllEstimates() {
+    public List<EstimateDto> getAllEstimates(boolean validated, boolean paid, boolean canceled, LocalDate before_date, LocalDate after_date, long idMember, boolean isAdmin, boolean allEstimateMember) {
         List<Estimate> estimates = estimateRepository.findAll();
-        return estimates.stream().map(this::convertToDto).collect(Collectors.toList());
+
+        Stream<Estimate> filteredEstimates = estimates.stream()
+                .filter(estimate -> (!validated || estimate.getValidationDate() != null))
+                .filter(estimate -> (!paid || estimate.getPaymentDate() != null))
+                .filter(estimate -> (!canceled || estimate.getCancellationDate() != null))
+                .filter(estimate -> before_date == null || estimate.getCreationDate().isBefore(before_date))
+                .filter(estimate -> after_date == null || estimate.getCreationDate().isAfter(after_date));
+        if (!isAdmin || !allEstimateMember) {
+            filteredEstimates = filteredEstimates.filter(estimate -> estimate.getMember().getIdMember() == idMember);
+        }
+        return filteredEstimates.map(this::convertToDto).collect(Collectors.toList());
     }
 
     public EstimateDto getEstimateById(Long id) {

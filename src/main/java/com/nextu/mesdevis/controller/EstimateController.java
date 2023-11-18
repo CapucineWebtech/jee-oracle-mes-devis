@@ -1,6 +1,7 @@
 package com.nextu.mesdevis.controller;
 
 import com.nextu.mesdevis.dto.EstimateDto;
+import com.nextu.mesdevis.dto.ProductDto;
 import com.nextu.mesdevis.dto.ProductXEstimateDto;
 import com.nextu.mesdevis.service.ClientAuthenticationService;
 import com.nextu.mesdevis.service.EstimateService;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,10 +29,18 @@ public class EstimateController {
     private ClientAuthenticationService clientAuthenticationService;
 
     @GetMapping
-    public ResponseEntity<List<EstimateDto>> getAllEstimates() {
+    public ResponseEntity<List<EstimateDto>> getAllEstimates(
+            @RequestParam(name = "validated", required = false) boolean validated,
+            @RequestParam(name = "paid", required = false) boolean paid,
+            @RequestParam(name = "canceled", required = false) boolean canceled,
+            @RequestParam(name = "before_date", required = false) LocalDate before_date,
+            @RequestParam(name = "after_date", required = false) LocalDate after_date,
+            @RequestParam(name = "all", required = false) boolean allEstimateMember) {
+
         String roleMember = memberAuthenticationService.findMemberRole();
+        long idMember = memberAuthenticationService.findMemberId();
         if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
-            List<EstimateDto> estimates = estimateService.getAllEstimates();
+            List<EstimateDto> estimates = estimateService.getAllEstimates(validated, paid, canceled,before_date, after_date, idMember, roleMember.equals("ADMIN"), allEstimateMember);
             return new ResponseEntity<>(estimates, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -130,7 +140,6 @@ public class EstimateController {
     }
 
     public static class NewProductXEstimateAndDeleteProductXEstimate {
-
         private List<ProductXEstimateDto> newProductXEstimateDtos;
         private List<Long> oldProductXEstimateId;
 
