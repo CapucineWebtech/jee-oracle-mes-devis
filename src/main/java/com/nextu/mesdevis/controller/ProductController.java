@@ -23,17 +23,27 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts(
-            @RequestParam(name = "start", defaultValue = "0") String startStr,
-            @RequestParam(name = "end", defaultValue = "0") String endStr,
+            @RequestParam(name = "start", required = false) String startStr,
+            @RequestParam(name = "end", required = false) String endStr,
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "category", required = false) String category) {
-        long start, end;
-        try {
-            start = Long.parseLong(startStr);
-            end = Long.parseLong(endStr);
-        } catch (NumberFormatException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        Long start = null, end = null;
+
+        if (startStr != null) {
+            try {
+                start = Long.parseLong(startStr);
+            } catch (NumberFormatException e) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        if (endStr != null) {
+            try {
+                end = Long.parseLong(endStr);
+            } catch (NumberFormatException e) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
         }
 
         List<ProductDto> products;
@@ -44,7 +54,7 @@ public class ProductController {
             products = productService.getProductsByCodeContainingWithPrice(code);
         } else if (category != null) {
             products = productService.getProductsByCategoryNameWithPrice(category);
-        } else if (start >= 0 && end >= 0) {
+        } else if (start != null && end != null && start >= 0 && end >= 0) {
             products = productService.getProductsWithPrice(start, end);
         } else {
             products = productService.getAllProducts();
