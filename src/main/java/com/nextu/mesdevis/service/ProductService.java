@@ -6,10 +6,10 @@ import com.nextu.mesdevis.entity.Product;
 import com.nextu.mesdevis.repository.CategoryRepository;
 import com.nextu.mesdevis.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,69 +24,73 @@ public class ProductService {
     @Autowired
     private PriceService priceService;
 
-
-    public List<ProductDto> getAllProducts() {
+    public List<ProductDto> getAllProductsFilter(String startStr, String endStr, String name, String code, String category) {
         List<Product> products = productRepository.findAll();
-        return products.stream().map(this::convertToDto).collect(Collectors.toList());
+        List<Long> productIds = products.stream()
+                .map(Product::getIdProduct)
+                .filter(id -> filterByIdRange(id, startStr, endStr))
+                .filter(id -> filterByName(products, id, name))
+                .filter(id -> filterByCode(products, id, code))
+                .filter(id -> filterByCategory(products, id, category))
+                .collect(Collectors.toList());
+
+        Map<Long, Float> productPricesMap = priceService.findProductsPrices(productIds);
+
+        return products.stream()
+                .filter(product -> productIds.contains(product.getIdProduct()))
+                .map(product -> convertToDtoWithPrice(product, productPricesMap.get(product.getIdProduct())))
+                .collect(Collectors.toList());
     }
 
-    public List<ProductDto> getProductsWithPrice(long start, long end) {
-        List<Product> products = productRepository.findAll(Sort.by(Sort.Direction.ASC, "idProduct"));
-
-        if (start < 0 || end >= products.size() || start > end) {
-            throw new IllegalArgumentException("Invalid indices");
+    private boolean filterByIdRange(Long id, String startStr, String endStr) {
+        if (startStr != null && !startStr.isEmpty()) {
+            Long startId = Long.parseLong(startStr);
+            if (id < startId) {
+                return false;
+            }
         }
-
-        List<Product> subList = products.subList((int) (start -1), (int) end);
-
-        return subList.stream()
-                .map(product -> {
-                    ProductDto productDto = convertToDto(product);
-                    float productPrice = priceService.findProductPrice(product.getIdProduct());
-                    productDto.setPrice(productPrice);
-                    return productDto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<ProductDto> getProductsByNameContainingWithPrice(String name) {
-        List<Product> products = productRepository.findByNameContaining(name);
-        return products.stream()
-                .map(product -> {
-                    ProductDto productDto = convertToDto(product);
-                    float productPrice = priceService.findProductPrice(product.getIdProduct());
-                    productDto.setPrice(productPrice);
-                    return productDto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<ProductDto> getProductsByCodeContainingWithPrice(String productCode) {
-        List<Product> products = productRepository.findByProductCodeContaining(productCode);
-        return products.stream()
-                .map(product -> {
-                    ProductDto productDto = convertToDto(product);
-                    float productPrice = priceService.findProductPrice(product.getIdProduct());
-                    productDto.setPrice(productPrice);
-                    return productDto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<ProductDto> getProductsByCategoryNameWithPrice(String categoryName) {
-        Category category = categoryRepository.findByName(categoryName);
-        if (category == null) {
-            throw new RuntimeException("Category not found with name: " + categoryName);
+        if (endStr != null && !endStr.isEmpty()) {
+            Long endId = Long.parseLong(endStr);
+            return id <= endId;
         }
-        List<Product> products = productRepository.findByCategory(category);
-        return products.stream()
-                .map(product -> {
-                    ProductDto productDto = convertToDto(product);
-                    float productPrice = priceService.findProductPrice(product.getIdProduct());
-                    productDto.setPrice(productPrice);
-                    return productDto;
-                })
-                .collect(Collectors.toList());
+        return true;
+    }
+
+    private boolean filterByName(List<Product> products, long id, String name) {
+        if (name != null && !name.isEmpty()) {
+            for (Product product : products) {
+                if (product.getIdProduct() == id && product.getName().toLowerCase().contains(name.toLowerCase())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private boolean filterByCode(List<Product> products, long id, String code) {
+        if (code != null && !code.isEmpty()) {
+            for (Product product : products) {
+                if (product.getIdProduct() == id && product.getProductCode().contains(code)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private boolean filterByCategory(List<Product> products, long id, String categoryId) {
+        if (categoryId != null && !categoryId.isEmpty()) {
+            long category = Long.parseLong(categoryId);
+            for (Product product : products) {
+                if (product.getIdProduct() == id && product.getCategory().getIdCategory() == category) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     public ProductDto getProductById(Long id) {
@@ -131,6 +135,18 @@ public class ProductService {
                 product.getInventory(),
                 product.getCategory().getIdCategory()
         );
+    }
+
+    private ProductDto convertToDtoWithPrice(Product product, Float price) {
+        ProductDto productDto = new ProductDto(
+                product.getIdProduct(),
+                product.getName(),
+                product.getProductCode(),
+                product.getInventory(),
+                product.getCategory().getIdCategory()
+        );
+        productDto.setPrice(price);
+        return productDto;
     }
 
     private Product convertToEntity(ProductDto productDto) {
