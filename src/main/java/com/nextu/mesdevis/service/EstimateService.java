@@ -59,10 +59,10 @@ public class EstimateService {
         return filteredEstimates.map(this::convertToDevelopedDto).collect(Collectors.toList());
     }
 
-    public EstimateDto getEstimateById(Long id) {
+    public DevelopedEstimateDto getEstimateById(Long id) {
         Estimate estimate = estimateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Estimate not found with id: " + id));
-        return convertToDto(estimate);
+        return convertToDevelopedDto(estimate);
     }
 
     public EstimateDto createCompleteEstimate(EstimateDto estimateDto, List<ProductXEstimateDto> productXEstimateDtos) {

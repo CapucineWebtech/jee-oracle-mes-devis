@@ -48,10 +48,10 @@ public class EstimateController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EstimateDto> getEstimateById(@PathVariable Long id) {
+    public ResponseEntity<DevelopedEstimateDto> getEstimateById(@PathVariable Long id) {
         String roleMember = memberAuthenticationService.findMemberRole();
         long authenticatedClient = clientAuthenticationService.isClientExist();
-        EstimateDto estimate = estimateService.getEstimateById(id);
+        DevelopedEstimateDto estimate = estimateService.getEstimateById(id);
         if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER") || authenticatedClient == estimate.getClientId()) {
             return new ResponseEntity<>(estimate, HttpStatus.OK);
         } else {
