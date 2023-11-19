@@ -94,7 +94,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         String roleMember = memberAuthenticationService.findMemberRole();
-        if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
+        if (Objects.equals(roleMember, "ADMIN")) {
             productService.deleteProduct(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {

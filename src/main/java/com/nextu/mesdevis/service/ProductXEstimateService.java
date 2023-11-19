@@ -52,33 +52,6 @@ public class ProductXEstimateService {
         return convertToDto(savedProductXEstimate);
     }
 
-    public ProductXEstimateDto updateProductXEstimate(Long id, ProductXEstimateDto productXEstimateDto) {
-        ProductXEstimate productXEstimate = productXEstimateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ProductXEstimate not found with id: " + id));
-
-        productXEstimate.setPrice(productXEstimateDto.getPrice());
-        productXEstimate.setInventory(productXEstimateDto.getInventory());
-
-        if (productXEstimateDto.getEstimateId() != 0) {
-            Estimate estimate = estimateRepository.findById(productXEstimateDto.getEstimateId())
-                    .orElseThrow(() -> new RuntimeException("Estimate not found with id: " + productXEstimateDto.getEstimateId()));
-            productXEstimate.setEstimate(estimate);
-        }
-
-        if (productXEstimateDto.getProductId() != 0) {
-            Product product = productRepository.findById(productXEstimateDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found with id: " + productXEstimateDto.getEstimateId()));
-            productXEstimate.setProduct(product);
-        }
-
-        ProductXEstimate updatedProductXEstimate = productXEstimateRepository.save(productXEstimate);
-        return convertToDto(updatedProductXEstimate);
-    }
-
-    public void deleteProductXEstimate(Long id) {
-        productXEstimateRepository.deleteById(id);
-    }
-
     private ProductXEstimateDto convertToDto(ProductXEstimate productXEstimate) {
         return new ProductXEstimateDto(
                 productXEstimate.getIdProductXEstimate(),

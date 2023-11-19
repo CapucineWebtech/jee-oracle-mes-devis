@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,16 +78,28 @@ public class CategoryService {
     }
 
     private CategoryDto convertToDto(Category category) {
+        String roleMember = memberAuthenticationService.findMemberRole();
+        boolean isAdminOrMember = Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER");
+
         List<Long> productIds = category.getProducts() != null
                 ? category.getProducts().stream().map(Product::getIdProduct).toList()
                 : List.of();
 
-        return new CategoryDto(
-                category.getIdCategory(),
-                category.getName(),
-                category.getMember().getIdMember(),
-                productIds
-        );
+        if (isAdminOrMember) {
+            return new CategoryDto(
+                    category.getIdCategory(),
+                    category.getName(),
+                    category.getMember().getIdMember(),
+                    productIds
+            );
+        } else {
+            return new CategoryDto(
+                    category.getIdCategory(),
+                    category.getName(),
+                    0,
+                    productIds
+            );
+        }
     }
 
 

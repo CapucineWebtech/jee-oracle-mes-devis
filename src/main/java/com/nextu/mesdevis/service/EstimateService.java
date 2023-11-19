@@ -1,13 +1,13 @@
 package com.nextu.mesdevis.service;
 
+import com.nextu.mesdevis.dto.DevelopedEstimateDto;
+import com.nextu.mesdevis.dto.DevelopedProductXEstimateDto;
 import com.nextu.mesdevis.dto.EstimateDto;
 import com.nextu.mesdevis.dto.ProductXEstimateDto;
 import com.nextu.mesdevis.entity.*;
 import com.nextu.mesdevis.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -44,7 +44,7 @@ public class EstimateService {
     @Autowired
     private MemberAuthenticationService memberAuthenticationService;
 
-    public List<EstimateDto> getAllEstimates(boolean validated, boolean paid, boolean canceled, LocalDate before_date, LocalDate after_date, long idMember, boolean isAdmin, boolean allEstimateMember) {
+    public List<DevelopedEstimateDto> getAllEstimates(boolean validated, boolean paid, boolean canceled, LocalDate before_date, LocalDate after_date, long idMember, boolean isAdmin, boolean allEstimateMember) {
         List<Estimate> estimates = estimateRepository.findAll();
 
         Stream<Estimate> filteredEstimates = estimates.stream()
@@ -56,7 +56,7 @@ public class EstimateService {
         if (!isAdmin || !allEstimateMember) {
             filteredEstimates = filteredEstimates.filter(estimate -> estimate.getMember().getIdMember() == idMember);
         }
-        return filteredEstimates.map(this::convertToDto).collect(Collectors.toList());
+        return filteredEstimates.map(this::convertToDevelopedDto).collect(Collectors.toList());
     }
 
     public EstimateDto getEstimateById(Long id) {
@@ -109,7 +109,7 @@ public class EstimateService {
     private Long validateProductAvailability(List<ProductXEstimateDto> productXEstimateDtos) {
         Map<Long, Long> categoryInventorySum = new HashMap<>();
         Long maxCategoryId = null;
-        Long maxInventorySum = Long.MIN_VALUE;
+        long maxInventorySum = Long.MIN_VALUE;
 
         for (ProductXEstimateDto productXEstimateDto : productXEstimateDtos) {
             Product product = productRepository.findById(productXEstimateDto.getProductId())
@@ -121,7 +121,7 @@ public class EstimateService {
 
             Long categoryId = product.getCategory().getIdCategory();
             Long inventory = productXEstimateDto.getInventory();
-            Long currentInventorySum = categoryInventorySum.getOrDefault(categoryId, 0L) + inventory;
+            long currentInventorySum = categoryInventorySum.getOrDefault(categoryId, 0L) + inventory;
             categoryInventorySum.put(categoryId, currentInventorySum);
 
             if (currentInventorySum > maxInventorySum) {
@@ -145,6 +145,8 @@ public class EstimateService {
             if ((Objects.equals(roleMember, "ADMIN") || idMember.equals(estimate.getMember().getIdMember())) && estimate.getValidationDate() == null) {
                 estimate.setValidationDate(LocalDate.now());
                 estimateRepository.save(estimate);
+            }else {
+                throw new RuntimeException("Invalid member to update this estimate");
             }
         }
 
@@ -163,6 +165,8 @@ public class EstimateService {
             if ((Objects.equals(roleMember, "ADMIN") || idMember.equals(estimate.getMember().getIdMember())) && estimate.getPaymentDate() == null && estimate.getValidationDate() != null) {
                 estimate.setPaymentDate(LocalDate.now());
                 estimateRepository.save(estimate);
+            }else {
+                throw new RuntimeException("Invalid member to update this estimate");
             }
         }
 
@@ -180,7 +184,14 @@ public class EstimateService {
         for (Estimate estimate : estimates) {
             if ((Objects.equals(roleMember, "ADMIN") || idMember.equals(estimate.getMember().getIdMember())) && estimate.getCancellationDate() == null) {
                 estimate.setCancellationDate(LocalDate.now());
+                for (ProductXEstimate productXEstimate : estimate.getProductsXEstimates()) {
+                    Product product = productXEstimate.getProduct();
+                    product.setInventory(product.getInventory() + productXEstimate.getInventory());
+                    productRepository.save(product);
+                }
                 estimateRepository.save(estimate);
+            }else {
+                throw new RuntimeException("Invalid member to update this estimate");
             }
         }
 
@@ -192,67 +203,72 @@ public class EstimateService {
         Estimate estimate = estimateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Estimate not found with id: " + id));
 
-        List<Long> currentProductXEstimateIds = estimate.getProductsXEstimates()
-                .stream()
-                .map(ProductXEstimate::getIdProductXEstimate)
-                .toList();
+        if (estimate.getValidationDate() == null){
+            List<Long> currentProductXEstimateIds = estimate.getProductsXEstimates()
+                    .stream()
+                    .map(ProductXEstimate::getIdProductXEstimate)
+                    .toList();
 
-        List<Long> validOldProductXEstimateIds = oldProductXEstimateIds
-                .stream()
-                .filter(currentProductXEstimateIds::contains)
-                .toList();
+            List<Long> validOldProductXEstimateIds = oldProductXEstimateIds
+                    .stream()
+                    .filter(currentProductXEstimateIds::contains)
+                    .toList();
 
-        for (Long validOldProductXEstimateId : validOldProductXEstimateIds) {
-            ProductXEstimate productXEstimate = productXEstimateRepository.findById(validOldProductXEstimateId)
-                    .orElseThrow(() -> new RuntimeException("ProductXEstimate not found with id: " + validOldProductXEstimateId));
-            Product product = productXEstimate.getProduct();
-            product.setInventory(product.getInventory() + productXEstimate.getInventory());
-            productXEstimateRepository.deleteById(validOldProductXEstimateId);
-            productRepository.save(product);
-        }
-
-        for (ProductXEstimateDto newProductXEstimateDto : newProductXEstimateDtos) {
-            Long idProductXEstimate = newProductXEstimateDto.getIdProductXEstimate();
-            if (currentProductXEstimateIds.contains(idProductXEstimate)) {
-                ProductXEstimate existingProductXEstimate = productXEstimateRepository.findById(idProductXEstimate)
-                        .orElseThrow(() -> new RuntimeException("ProductXEstimate not found with id: " + idProductXEstimate));
-                if (newProductXEstimateDto.getPrice() != 0){
-                    existingProductXEstimate.setPrice(newProductXEstimateDto.getPrice());
-                }
-                Product product = existingProductXEstimate.getProduct();
-                if (newProductXEstimateDto.getInventory() != 0){
-                    long oldInventoryPXE = existingProductXEstimate.getInventory();
-                    long newInventoryPXE = newProductXEstimateDto.getInventory();
-                    long productInventory = product.getInventory();
-                    product.setInventory(productInventory + (oldInventoryPXE - newInventoryPXE));
-
-                    existingProductXEstimate.setInventory(newProductXEstimateDto.getInventory());
-                }
-                productXEstimateRepository.save(existingProductXEstimate);
+            for (Long validOldProductXEstimateId : validOldProductXEstimateIds) {
+                ProductXEstimate productXEstimate = productXEstimateRepository.findById(validOldProductXEstimateId)
+                        .orElseThrow(() -> new RuntimeException("ProductXEstimate not found with id: " + validOldProductXEstimateId));
+                Product product = productXEstimate.getProduct();
+                product.setInventory(product.getInventory() + productXEstimate.getInventory());
+                productXEstimateRepository.deleteById(validOldProductXEstimateId);
                 productRepository.save(product);
-            } else {
-                if (newProductXEstimateDto.getInventory() != 0){
-                    ProductXEstimate newProductXEstimate = new ProductXEstimate();
-                    newProductXEstimate.setInventory(newProductXEstimateDto.getInventory());
-                    Product product = productRepository.findById(newProductXEstimateDto.getProductId())
-                            .orElseThrow(() -> new RuntimeException("Product not found with id: " + newProductXEstimateDto.getProductId()));
-                    newProductXEstimate.setProduct(product);
-                    newProductXEstimate.setEstimate(estimate);
+            }
+
+            for (ProductXEstimateDto newProductXEstimateDto : newProductXEstimateDtos) {
+                Long idProductXEstimate = newProductXEstimateDto.getIdProductXEstimate();
+                if (currentProductXEstimateIds.contains(idProductXEstimate)) {
+                    ProductXEstimate existingProductXEstimate = productXEstimateRepository.findById(idProductXEstimate)
+                            .orElseThrow(() -> new RuntimeException("ProductXEstimate not found with id: " + idProductXEstimate));
                     if (newProductXEstimateDto.getPrice() != 0){
-                        newProductXEstimate.setPrice(newProductXEstimateDto.getPrice());
-                    }else {
-                        newProductXEstimate.setPrice(priceService.findProductPrice(product.getIdProduct()));
+                        existingProductXEstimate.setPrice(newProductXEstimateDto.getPrice());
                     }
-                    productXEstimateRepository.save(newProductXEstimate);
-                    product.setInventory(product.getInventory() - newProductXEstimateDto.getInventory());
+                    Product product = existingProductXEstimate.getProduct();
+                    if (newProductXEstimateDto.getInventory() != 0){
+                        long oldInventoryPXE = existingProductXEstimate.getInventory();
+                        long newInventoryPXE = newProductXEstimateDto.getInventory();
+                        long productInventory = product.getInventory();
+                        product.setInventory(productInventory + (oldInventoryPXE - newInventoryPXE));
+
+                        existingProductXEstimate.setInventory(newProductXEstimateDto.getInventory());
+                    }
+                    productXEstimateRepository.save(existingProductXEstimate);
                     productRepository.save(product);
-                }else {
-                    throw new RuntimeException("No inventory : no productXEstimate.");
+                } else {
+                    if (newProductXEstimateDto.getInventory() != 0){
+                        ProductXEstimate newProductXEstimate = new ProductXEstimate();
+                        newProductXEstimate.setInventory(newProductXEstimateDto.getInventory());
+                        Product product = productRepository.findById(newProductXEstimateDto.getProductId())
+                                .orElseThrow(() -> new RuntimeException("Product not found with id: " + newProductXEstimateDto.getProductId()));
+                        newProductXEstimate.setProduct(product);
+                        newProductXEstimate.setEstimate(estimate);
+                        if (newProductXEstimateDto.getPrice() != 0){
+                            newProductXEstimate.setPrice(newProductXEstimateDto.getPrice());
+                        }else {
+                            newProductXEstimate.setPrice(priceService.findProductPrice(product.getIdProduct()));
+                        }
+                        productXEstimateRepository.save(newProductXEstimate);
+                        product.setInventory(product.getInventory() - newProductXEstimateDto.getInventory());
+                        productRepository.save(product);
+                    }else {
+                        throw new RuntimeException("No inventory : no productXEstimate.");
+                    }
                 }
             }
+
+            return convertToDto(estimate);
+        }else {
+            throw new RuntimeException("No update after setting ValidationDate");
         }
 
-        return convertToDto(estimate);
     }
 
     public void deleteEstimate(Long id) {
@@ -260,8 +276,17 @@ public class EstimateService {
         if (optionalEstimate.isPresent()) {
             Estimate estimate = optionalEstimate.get();
             List<ProductXEstimate> productXEstimates = estimate.getProductsXEstimates();
-            for (ProductXEstimate productXEstimate : productXEstimates) {
-                productXEstimateRepository.deleteById(productXEstimate.getIdProductXEstimate());
+            if (estimate.getPaymentDate() != null){
+                for (ProductXEstimate productXEstimate : productXEstimates) {
+                    Product product = productXEstimate.getProduct();
+                    product.setInventory(product.getInventory() + productXEstimate.getInventory());
+                    productRepository.save(product);
+                    productXEstimateRepository.deleteById(productXEstimate.getIdProductXEstimate());
+                }
+            }else {
+                for (ProductXEstimate productXEstimate : productXEstimates) {
+                    productXEstimateRepository.deleteById(productXEstimate.getIdProductXEstimate());
+                }
             }
             estimateRepository.deleteById(id);
         } else {
@@ -278,14 +303,14 @@ public class EstimateService {
                     .map(ProductXEstimate::getIdProductXEstimate)
                     .collect(Collectors.toList());
         }
-
+        Long clientId = (estimate.getClient() != null) ? estimate.getClient().getIdClient() : null;
         return new EstimateDto(
                 estimate.getIdEstimate(),
                 estimate.getCreationDate(),
                 estimate.getValidationDate(),
                 estimate.getPaymentDate(),
                 estimate.getCancellationDate(),
-                estimate.getClient().getIdClient(),
+                clientId,
                 productXEstimateIds,
                 estimate.getMember().getIdMember()
         );
@@ -296,6 +321,42 @@ public class EstimateService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+
+    private DevelopedEstimateDto convertToDevelopedDto(Estimate estimate) {
+        List<DevelopedProductXEstimateDto> developedProductXEstimateDtos = new ArrayList<>();
+
+        if (estimate.getProductsXEstimates() != null) {
+            developedProductXEstimateDtos = estimate.getProductsXEstimates()
+                    .stream()
+                    .map(this::convertToDevelopedProductXEstimateDto)
+                    .collect(Collectors.toList());
+        }
+
+        Long clientId = (estimate.getClient() != null) ? estimate.getClient().getIdClient() : null;
+
+        return new DevelopedEstimateDto(
+                estimate.getIdEstimate(),
+                estimate.getCreationDate(),
+                estimate.getValidationDate(),
+                estimate.getPaymentDate(),
+                estimate.getCancellationDate(),
+                clientId,
+                developedProductXEstimateDtos,
+                estimate.getMember().getIdMember()
+        );
+    }
+
+    private DevelopedProductXEstimateDto convertToDevelopedProductXEstimateDto(ProductXEstimate productXEstimate) {
+        return new DevelopedProductXEstimateDto(
+                productXEstimate.getIdProductXEstimate(),
+                productXEstimate.getPrice(),
+                productXEstimate.getInventory(),
+                productXEstimate.getEstimate().getIdEstimate(),
+                productXEstimate.getProduct().getIdProduct(),
+                productXEstimate.getProduct().getName()
+        );
+    }
+
 
 
     private Estimate convertToEntity(EstimateDto estimateDto) {

@@ -1,7 +1,7 @@
 package com.nextu.mesdevis.controller;
 
+import com.nextu.mesdevis.dto.DevelopedEstimateDto;
 import com.nextu.mesdevis.dto.EstimateDto;
-import com.nextu.mesdevis.dto.ProductDto;
 import com.nextu.mesdevis.dto.ProductXEstimateDto;
 import com.nextu.mesdevis.service.ClientAuthenticationService;
 import com.nextu.mesdevis.service.EstimateService;
@@ -29,7 +29,7 @@ public class EstimateController {
     private ClientAuthenticationService clientAuthenticationService;
 
     @GetMapping
-    public ResponseEntity<List<EstimateDto>> getAllEstimates(
+    public ResponseEntity<List<DevelopedEstimateDto>> getAllEstimates(
             @RequestParam(name = "validated", required = false) boolean validated,
             @RequestParam(name = "paid", required = false) boolean paid,
             @RequestParam(name = "canceled", required = false) boolean canceled,
@@ -40,7 +40,7 @@ public class EstimateController {
         String roleMember = memberAuthenticationService.findMemberRole();
         long idMember = memberAuthenticationService.findMemberId();
         if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
-            List<EstimateDto> estimates = estimateService.getAllEstimates(validated, paid, canceled,before_date, after_date, idMember, roleMember.equals("ADMIN"), allEstimateMember);
+            List<DevelopedEstimateDto> estimates = estimateService.getAllEstimates(validated, paid, canceled,before_date, after_date, idMember, roleMember.equals("ADMIN"), allEstimateMember);
             return new ResponseEntity<>(estimates, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -61,13 +61,8 @@ public class EstimateController {
 
     @PostMapping
     public ResponseEntity<EstimateDto> createEstimate(@RequestBody EstimateAndListProductXEstimate estimateRequest) {
-        String roleMember = memberAuthenticationService.findMemberRole();
-        if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
-            EstimateDto createdEstimate = estimateService.createCompleteEstimate(estimateRequest.getEstimateDto(), estimateRequest.getProductXEstimateDtos());
-            return new ResponseEntity<>(createdEstimate, HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+        EstimateDto createdEstimate = estimateService.createCompleteEstimate(estimateRequest.getEstimateDto(), estimateRequest.getProductXEstimateDtos());
+        return new ResponseEntity<>(createdEstimate, HttpStatus.CREATED);
     }
 
     @PostMapping("/{id}")
@@ -83,20 +78,35 @@ public class EstimateController {
 
     @PostMapping("/validate")
     public ResponseEntity<List<EstimateDto>> validateEstimate(@RequestBody List<Long> estimateIds) {
-        List<EstimateDto> updatedEstimates = estimateService.validateEstimates(estimateIds);
-        return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        String roleMember = memberAuthenticationService.findMemberRole();
+        if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
+            List<EstimateDto> updatedEstimates = estimateService.validateEstimates(estimateIds);
+            return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
     }
 
     @PostMapping("/payed")
     public ResponseEntity<List<EstimateDto>> payedEstimate(@RequestBody List<Long> estimateIds) {
-        List<EstimateDto> updatedEstimates = estimateService.paymentEstimates(estimateIds);
-        return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        String roleMember = memberAuthenticationService.findMemberRole();
+        if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
+            List<EstimateDto> updatedEstimates = estimateService.paymentEstimates(estimateIds);
+            return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
     }
 
     @PostMapping("/cancel")
     public ResponseEntity<List<EstimateDto>> cancelEstimate(@RequestBody List<Long> estimateIds) {
-        List<EstimateDto> updatedEstimates = estimateService.cancelEstimates(estimateIds);
-        return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        String roleMember = memberAuthenticationService.findMemberRole();
+        if (Objects.equals(roleMember, "ADMIN") || Objects.equals(roleMember, "MEMBER")) {
+            List<EstimateDto> updatedEstimates = estimateService.cancelEstimates(estimateIds);
+            return new ResponseEntity<>(updatedEstimates, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
     }
 
     @DeleteMapping("/{id}")

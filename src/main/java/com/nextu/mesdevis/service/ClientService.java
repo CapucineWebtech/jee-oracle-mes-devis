@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 @Service
@@ -59,6 +58,13 @@ public class ClientService {
     }
 
     public void deleteClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+        List<Estimate> estimates = client.getEstimates();
+        for (Estimate estimate : estimates ){
+            estimate.setClient(null);
+            estimateRepository.save(estimate);
+        }
         clientRepository.deleteById(id);
     }
 
