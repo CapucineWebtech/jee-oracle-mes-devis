@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+/**
+ * Service gérant les opérations liées aux clients.
+ */
 @Service
 public class ClientService {
 
@@ -19,17 +23,35 @@ public class ClientService {
     @Autowired
     private EstimateRepository estimateRepository;
 
+    /**
+     * Récupère tous les clients.
+     *
+     * @return La liste des clients sous forme de DTO.
+     */
     public List<ClientDto> getAllClients() {
         List<Client> clients = clientRepository.findAll();
         return clients.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
+    /**
+     * Récupère un client par son identifiant.
+     *
+     * @param id L'identifiant du client.
+     * @return Le client sous forme de DTO.
+     * @throws RuntimeException Si le client n'est pas trouvé.
+     */
     public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
         return convertToDto(client);
     }
 
+    /**
+     * Crée un nouveau client.
+     *
+     * @param clientDto Les informations du client à créer. Voir la documentation de {@link ClientDto}.
+     * @return Le client créé sous forme de DTO.
+     */
     public ClientDto createClient(ClientDto clientDto) {
         Client client = convertToEntity(clientDto);
         client.setRegistrationDate(LocalDate.now());
@@ -37,6 +59,14 @@ public class ClientService {
         return convertToDto(savedClient);
     }
 
+    /**
+     * Met à jour les informations d'un client existant.
+     *
+     * @param id        L'identifiant du client à mettre à jour.
+     * @param clientDto Les nouvelles informations du client.
+     * @return Le client mis à jour sous forme de DTO.
+     * @throws RuntimeException Si le client n'est pas trouvé.
+     */
     public ClientDto updateClient(Long id, ClientDto clientDto) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
@@ -57,6 +87,12 @@ public class ClientService {
         return convertToDto(updatedClient);
     }
 
+    /**
+     * Supprime un client par son identifiant.
+     *
+     * @param id L'identifiant du client à supprimer.
+     * @throws RuntimeException Si le client n'est pas trouvé.
+     */
     public void deleteClient(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
@@ -68,6 +104,12 @@ public class ClientService {
         clientRepository.deleteById(id);
     }
 
+    /**
+     * Convertit un objet Client en un objet ClientDto.
+     *
+     * @param client L'objet Client à convertir.
+     * @return Le Client converti en ClientDto.
+     */
     private ClientDto convertToDto(Client client) {
         List<Long> estimateIds = null;
 
@@ -90,6 +132,12 @@ public class ClientService {
         );
     }
 
+    /**
+     * Convertit un objet ClientDto en un objet Client.
+     *
+     * @param clientDto L'objet ClientDto à convertir.
+     * @return Le ClientDto converti en Client.
+     */
     private Client convertToEntity(ClientDto clientDto) {
         return new Client(
                 clientDto.getFirstName(),

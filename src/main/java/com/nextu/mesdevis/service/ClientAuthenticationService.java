@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Service responsable de l'appel api pour l'authentification du client.
+ */
 @Service
 public class ClientAuthenticationService {
     private final Logger logger = LoggerFactory.getLogger(ClientService.class);
@@ -18,6 +21,11 @@ public class ClientAuthenticationService {
     @Value("${apiLoginClient}")
     private String apiUrl;
 
+    /**
+     * Vérifie l'existence d'un client en effectuant une requête POST vers l'API d'authentification.
+     *
+     * @return L'identifiant du client s'il existe, sinon -1.
+     */
     public long isClientExist() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

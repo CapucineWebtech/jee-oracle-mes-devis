@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Contrôleur gérant les opérations liées aux clients.
+ */
 @RestController
 @RequestMapping("/api/clients")
 public class ClientController {
@@ -25,6 +28,11 @@ public class ClientController {
     @Autowired
     private ClientAuthenticationService clientAuthenticationService;
 
+    /**
+     * Récupère tous les clients.
+     *
+     * @return Liste des clients avec un code de statut approprié si l'utilisateur est authentifié en tant que MEMBRE ou ADMIN. Sinon 403 Forbidden.
+     */
     @GetMapping
     public ResponseEntity<List<ClientDto>> getAllClients() {
         String roleMember = memberAuthenticationService.findMemberRole();
@@ -36,6 +44,12 @@ public class ClientController {
         }
     }
 
+    /**
+     * Récupère un client par son identifiant.
+     *
+     * @param id Identifiant du client.
+     * @return Le client avec un code de statut approprié si l'utilisateur est authentifié en tant que MEMBRE ou ADMIN ou comme étant le client avec l'id passer en paramètre. Sinon 403 Forbidden.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ClientDto> getClientById(@PathVariable Long id) {
         String roleMember = memberAuthenticationService.findMemberRole();
@@ -48,12 +62,25 @@ public class ClientController {
         }
     }
 
+    /**
+     * Crée un nouveau client.
+     *
+     * @param clientDto Les informations du client à créer.
+     * @return Le client créé avec un code de statut approprié. (n'importe qui peut créer un compte client)
+     */
     @PostMapping
     public ResponseEntity<ClientDto> createClient(@RequestBody ClientDto clientDto) {
         ClientDto createdClient = clientService.createClient(clientDto);
         return new ResponseEntity<>(createdClient, HttpStatus.CREATED);
     }
 
+    /**
+     * Met à jour un client existant.
+     *
+     * @param id       Identifiant du client à mettre à jour.
+     * @param clientDto Les nouvelles informations du client.
+     * @return Le client mis à jour avec un code de statut approprié si l'utilisateur est authentifié en tant que MEMBRE ou ADMIN ou comme étant le client avec l'id passer en paramètre. Sinon 403 Forbidden.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ClientDto> updateClient(@PathVariable Long id, @RequestBody ClientDto clientDto) {
         String roleMember = memberAuthenticationService.findMemberRole();
@@ -66,6 +93,12 @@ public class ClientController {
         }
     }
 
+    /**
+     * Supprime un client existant.
+     *
+     * @param id Identifiant du client à supprimer.
+     * @return Aucun contenu avec un code de statut approprié si l'utilisateur est authentifié en tant que MEMBRE ou ADMIN. Sinon 403 Forbidden.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
         String roleMember = memberAuthenticationService.findMemberRole();

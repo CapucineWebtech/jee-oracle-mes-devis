@@ -12,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Service responsable de l'authentification des membres avec l'appel API.
+ */
 @Service
 public class MemberAuthenticationService {
     private final Logger logger = LoggerFactory.getLogger(MemberService.class);
@@ -19,6 +22,11 @@ public class MemberAuthenticationService {
     @Value("${apiLoginMember}")
     private String apiUrl;
 
+    /**
+     * Recherche le rôle d'un membre.
+     *
+     * @return Le rôle du membre, ou une chaîne vide si une erreur se produit.
+     */
     public String findMemberRole() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -41,6 +49,11 @@ public class MemberAuthenticationService {
         return "";
     }
 
+    /**
+     * Recherche l'identifiant d'un membre.
+     *
+     * @return L'identifiant du membre, ou -1 si une erreur se produit.
+     */
     public long findMemberId() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

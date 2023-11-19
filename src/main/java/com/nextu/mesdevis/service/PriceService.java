@@ -17,13 +17,25 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.text.DecimalFormat;
 import java.util.*;
 
+/**
+ * Service pour la récupération des prix des produits avec l'API.
+ */
 @Service
 public class PriceService {
+    /**
+     * URL de l'API externe fournissant les prix des produits.
+     */
     @Value("${apiProductPrice}")
     private String apiUrl;
 
     private final Logger logger = LoggerFactory.getLogger(ProductService.class);
 
+    /**
+     * Recherche et retourne le prix d'un produit spécifié.
+     *
+     * @param productId Identifiant du produit.
+     * @return Le prix du produit sous forme de nombre décimal.
+     */
     public float findProductPrice(long productId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -53,6 +65,12 @@ public class PriceService {
         return -1;
     }
 
+    /**
+     * Recherche et retourne les prix de plusieurs produits spécifiés.
+     *
+     * @param productIds Liste des identifiants des produits.
+     * @return Une carte associant chaque identifiant de produit à son prix correspondant.
+     */
     public Map<Long, Float> findProductsPrices(List<Long> productIds) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

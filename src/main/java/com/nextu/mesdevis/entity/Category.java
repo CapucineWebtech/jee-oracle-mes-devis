@@ -17,7 +17,7 @@ public class Category {
     @JoinColumn(name = "idMember")
     private Member member;
 
-    @OneToMany(targetEntity = Product.class, mappedBy = "category")
+    @OneToMany(fetch = FetchType.EAGER, targetEntity = Product.class, mappedBy = "category")
     private List<Product> products;
 
     public Category() {

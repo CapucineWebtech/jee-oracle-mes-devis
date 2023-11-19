@@ -15,6 +15,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Service gérant les opérations liées aux devis.
+ */
 @Service
 public class EstimateService {
     @Autowired
@@ -44,6 +47,19 @@ public class EstimateService {
     @Autowired
     private MemberAuthenticationService memberAuthenticationService;
 
+    /**
+     * Récupère tous les devis en fonction des filtres spécifiés.
+     *
+     * @param validated        Indique si les devis doivent être validés.
+     * @param paid             Indique si les devis doivent être payés.
+     * @param canceled         Indique si les devis doivent être annulés.
+     * @param before_date      Date limite inférieure pour la création des devis.
+     * @param after_date       Date limite supérieure pour la création des devis.
+     * @param idMember         ID du membre associé aux devis.
+     * @param isAdmin          Indique si l'utilisateur est un administrateur.
+     * @param allEstimateMember Indique, quand l'utilisateur est un administrateur, s'il veux uniquement ses devis ou les devis de tous les membres.
+     * @return Une liste de DTO de devis développés. (infos devis + ProductXEstimates avec le nom du produit)
+     */
     public List<DevelopedEstimateDto> getAllEstimates(boolean validated, boolean paid, boolean canceled, LocalDate before_date, LocalDate after_date, long idMember, boolean isAdmin, boolean allEstimateMember) {
         List<Estimate> estimates = estimateRepository.findAll();
 
@@ -59,12 +75,25 @@ public class EstimateService {
         return filteredEstimates.map(this::convertToDevelopedDto).collect(Collectors.toList());
     }
 
+    /**
+     * Récupère un devis par son ID.
+     *
+     * @param id ID du devis à récupérer.
+     * @return Une liste de DTO de devis développés. (infos devis + ProductXEstimates avec le nom du produit)
+     */
     public DevelopedEstimateDto getEstimateById(Long id) {
         Estimate estimate = estimateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Estimate not found with id: " + id));
         return convertToDevelopedDto(estimate);
     }
 
+    /**
+     * Crée un devis complet avec des produits associés.
+     *
+     * @param estimateDto             Les informations du devis.
+     * @param productXEstimateDtos    La liste des DTO de produits associés au devis (ProductXEstimate).
+     * @return Le DTO du devis créé.
+     */
     public EstimateDto createCompleteEstimate(EstimateDto estimateDto, List<ProductXEstimateDto> productXEstimateDtos) {
         long categoryId = validateProductAvailability(productXEstimateDtos);
         Category category = categoryRepository.findById(categoryId)
@@ -132,7 +161,12 @@ public class EstimateService {
         return maxCategoryId;
     }
 
-
+    /**
+     * Valide les devis spécifiés.
+     *
+     * @param estimateIds Liste des ID des devis à valider.
+     * @return Une liste de DTO des devis validés.
+     */
     public List<EstimateDto> validateEstimates(List<Long> estimateIds) {
         List<Estimate> estimates = estimateRepository.findByIds(estimateIds);
         if (estimates.isEmpty()) {
@@ -153,6 +187,12 @@ public class EstimateService {
         return convertToDtoList(estimates);
     }
 
+    /**
+     * Effectue le paiement des devis spécifiés.
+     *
+     * @param estimateIds Liste des ID des devis à payer.
+     * @return Une liste de DTO des devis payés.
+     */
     public List<EstimateDto> paymentEstimates(List<Long> estimateIds) {
         List<Estimate> estimates = estimateRepository.findByIds(estimateIds);
         if (estimates.isEmpty()) {
@@ -173,6 +213,12 @@ public class EstimateService {
         return convertToDtoList(estimates);
     }
 
+    /**
+     * Annule les devis spécifiés en mettant a jour les stocks.
+     *
+     * @param estimateIds Liste des ID des devis à annuler.
+     * @return Une liste de DTO des devis annulés.
+     */
     public List<EstimateDto> cancelEstimates(List<Long> estimateIds) {
         List<Estimate> estimates = estimateRepository.findByIds(estimateIds);
         if (estimates.isEmpty()) {
@@ -198,7 +244,14 @@ public class EstimateService {
         return convertToDtoList(estimates);
     }
 
-
+    /**
+     * Met à jour un devis avec de nouveaux produits associés. Les dates ne sont pas modifiables.
+     *
+     * @param id                    ID du devis à mettre à jour.
+     * @param newProductXEstimateDtos Liste des nouveaux DTO de produits associés et des DTO produits a modifier (ProductXEstimate).
+     * @param oldProductXEstimateIds Liste des anciens ID de produits associés à supprimer (ProductXEstimate).
+     * @return Le DTO mis à jour du devis.
+     */
     public EstimateDto updateEstimate(Long id, List<ProductXEstimateDto> newProductXEstimateDtos, List<Long> oldProductXEstimateIds) {
         Estimate estimate = estimateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Estimate not found with id: " + id));
@@ -271,6 +324,11 @@ public class EstimateService {
 
     }
 
+    /**
+     * Supprime un devis par son ID et des ProductXEstimate associer (en mettant a jour le stock)
+     *
+     * @param id ID du devis à supprimer.
+     */
     public void deleteEstimate(Long id) {
         Optional<Estimate> optionalEstimate = estimateRepository.findById(id);
         if (optionalEstimate.isPresent()) {

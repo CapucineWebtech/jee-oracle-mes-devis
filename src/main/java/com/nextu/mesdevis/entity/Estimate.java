@@ -28,7 +28,7 @@ public class Estimate {
     @JoinColumn(name = "idClient")
     private Client client;
 
-    @OneToMany(targetEntity = ProductXEstimate.class, mappedBy = "estimate")
+    @OneToMany(fetch = FetchType.EAGER, targetEntity = ProductXEstimate.class, mappedBy = "estimate")
     private List<ProductXEstimate> productsXEstimates;
 
     @ManyToOne(fetch = FetchType.EAGER)

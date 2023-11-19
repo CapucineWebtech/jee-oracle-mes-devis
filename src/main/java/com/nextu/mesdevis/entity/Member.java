@@ -19,10 +19,10 @@ public class Member {
     @Column(nullable = false)
     private String email;
 
-    @OneToMany(targetEntity = Estimate.class, mappedBy = "member")
+    @OneToMany(fetch = FetchType.EAGER, targetEntity = Estimate.class, mappedBy = "member")
     private List<Estimate> Estimates;
 
-    @OneToMany(targetEntity = Category.class, mappedBy = "member")
+    @OneToMany(fetch = FetchType.EAGER, targetEntity = Category.class, mappedBy = "member")
     private List<Category> categories;
 
     public Member() {

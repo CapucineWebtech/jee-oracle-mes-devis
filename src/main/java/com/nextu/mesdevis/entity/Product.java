@@ -23,7 +23,7 @@ public class Product {
     @JoinColumn(name = "idCategory", nullable = false)
     private Category category;
 
-    @OneToMany(targetEntity = ProductXEstimate.class, mappedBy = "product")
+    @OneToMany(fetch = FetchType.EAGER, targetEntity = ProductXEstimate.class, mappedBy = "product")
     private List<ProductXEstimate> productsXEstimates;
 
     public Product() {
