@@ -148,7 +148,9 @@ public class ProductService {
     public ProductDto getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
-        return convertToDto(product);
+        ProductDto productDto = convertToDto(product);
+        productDto.setPrice(priceService.findProductPrice(product.getIdProduct()));
+        return productDto;
     }
 
     /**
@@ -160,7 +162,9 @@ public class ProductService {
     public ProductDto createProduct(ProductDto productDto) {
         Product product = convertToEntity(productDto);
         Product savedProduct = productRepository.save(product);
-        return convertToDto(savedProduct);
+        ProductDto savedProductDto = convertToDto(savedProduct);
+        savedProductDto.setPrice(priceService.findProductPrice(product.getIdProduct()));
+        return savedProductDto;
     }
 
     /**
@@ -186,7 +190,9 @@ public class ProductService {
         }
 
         Product updatedProduct = productRepository.save(product);
-        return convertToDto(updatedProduct);
+        ProductDto updatedProductDto = convertToDto(updatedProduct);
+        updatedProductDto.setPrice(priceService.findProductPrice(product.getIdProduct()));
+        return updatedProductDto;
     }
 
     /**
